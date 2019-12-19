@@ -8,13 +8,3 @@ C:\Users\kabas\source\repos\CA\CA\obj\Debug\CA.csproj.GenerateResource.cache
 C:\Users\kabas\source\repos\CA\CA\obj\Debug\CA.csproj.CoreCompileInputs.cache
 C:\Users\kabas\source\repos\CA\CA\obj\Debug\CA.exe
 C:\Users\kabas\source\repos\CA\CA\obj\Debug\CA.pdb
-C:\Users\kabas\Documents\CellularAutomaton\CA\bin\Debug\CA.exe.config
-C:\Users\kabas\Documents\CellularAutomaton\CA\bin\Debug\CA.exe
-C:\Users\kabas\Documents\CellularAutomaton\CA\bin\Debug\CA.pdb
-C:\Users\kabas\Documents\CellularAutomaton\CA\obj\Debug\CA.csprojAssemblyReference.cache
-C:\Users\kabas\Documents\CellularAutomaton\CA\obj\Debug\CA.Form1.resources
-C:\Users\kabas\Documents\CellularAutomaton\CA\obj\Debug\CA.Properties.Resources.resources
-C:\Users\kabas\Documents\CellularAutomaton\CA\obj\Debug\CA.csproj.GenerateResource.cache
-C:\Users\kabas\Documents\CellularAutomaton\CA\obj\Debug\CA.csproj.CoreCompileInputs.cache
-C:\Users\kabas\Documents\CellularAutomaton\CA\obj\Debug\CA.exe
-C:\Users\kabas\Documents\CellularAutomaton\CA\obj\Debug\CA.pdb

@@ -9,15 +9,21 @@ namespace CA
     class Cell:IComparable
     {
         public int grainID;
+        public double energy;
+        public bool recristalized;
 
         public Cell()
         {
             grainID = -1;
+            energy = 0;
+            recristalized = false;
         }
 
         public Cell(Cell cell)
         {
             this.grainID = cell.grainID;
+            this.energy = cell.energy;
+            recristalized = cell.recristalized;
         }
 
         public Cell(int grainID)

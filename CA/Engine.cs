@@ -11,6 +11,7 @@ namespace CA
     class Engine
     {
         public System.Drawing.Bitmap bitmap;
+        public System.Drawing.Bitmap bitmapEnergy;
         List<List<Cell>> previousStep;
         List<List<Cell>> nextStep;
         List<Grain> grains;
@@ -21,14 +22,20 @@ namespace CA
         int emptyCells;
         List<Point> edgePoints;
         public List<int> selectedGrains;
+        public bool showEnergy;
+        double maxEnergy;
+
 
         public Engine()
         {
+            maxEnergy = 0;
+            showEnergy = false;
             probability = 100;
             neighborhoodType = 0;
             emptyCells = spaceDim * spaceDim;
             growthDone = false;
             bitmap = new System.Drawing.Bitmap(spaceDim, spaceDim);
+            bitmapEnergy = new System.Drawing.Bitmap(spaceDim, spaceDim);
             grains = new List<Grain>();
             selectedGrains = new List<int>();
             previousStep = new List<List<Cell>>();
@@ -84,25 +91,37 @@ namespace CA
 
         public void DrawBitmap()
         {
+            double colorShift;
+            Color energyColor;
             for (int i = 0; i < previousStep.Count; i++)
             {
                 for (int j = 0; j < previousStep[i].Count; j++)
                 {
                     if (previousStep[i][j].grainID >= 0)
                     {
+                        double energy = previousStep[i][j].energy;
                         bitmap.SetPixel(i, j, grains[previousStep[i][j].grainID].color);
+                        colorShift = 254.0 * ((double)previousStep[i][j].energy / (double)maxEnergy);
+                        if (colorShift > 255) { colorShift = 255; }
+                        if (colorShift < 0) { colorShift = 0; }
+                        if (colorShift != colorShift) { colorShift = 0; }
+                        energyColor = Color.FromArgb((int)colorShift, 254 - (int)colorShift, 0);
+                        bitmapEnergy.SetPixel(i, j, energyColor);
                     }
                     else if (previousStep[i][j].grainID == -2)
                     {
                         bitmap.SetPixel(i, j, System.Drawing.Color.Black);
+                        bitmapEnergy.SetPixel(i, j, Color.FromArgb(255, 0, 0));
                     }
                     else if (previousStep[i][j].grainID == -3)
                     {
                         bitmap.SetPixel(i, j, System.Drawing.Color.Magenta);
+                        bitmapEnergy.SetPixel(i, j, Color.FromArgb(255, 0, 0));
                     }
                     else
                     {
                         bitmap.SetPixel(i, j, System.Drawing.Color.White);
+                        bitmapEnergy.SetPixel(i, j, Color.White);
                     }
                 }
             }
@@ -115,7 +134,7 @@ namespace CA
             {
                 for (int j = 0; j < spaceDim; j++)
                 {
-                    if(previousStep[i][j].grainID == -1)
+                    if (previousStep[i][j].grainID == -1)
                     {
                         cells++;
                     }
@@ -144,7 +163,6 @@ namespace CA
                         grains.Add(new Grain(grains.Count, randomColor));
                         previousStep[x][y].grainID = grains[grains.Count - 1].ID;
                         emptyCells--;
-                        var dupa = grains[grains.Count - 1].color;
                         bitmap.SetPixel(x, y, grains[grains.Count - 1].color);
                     }
                 } while (!done);
@@ -284,6 +302,297 @@ namespace CA
                 growthDone = true;
                 edgePoints = getEdgePoints();
             }
+        }
+
+        internal void Recrystallize(int nucleonsLocation, int nucleationType, int nucleonsNumber)
+        {
+            int iterator = 0;
+            int nucleonsToAdd = 0;
+            List<Point> pointsAvailable;
+            Random rnd = new Random();
+
+
+            //pre-loop
+
+            if (nucleationType == 0)    //constant
+            {
+                nucleonsToAdd = nucleonsNumber;
+            }
+            else if (nucleationType == 1)    //increasing
+            {
+                nucleonsToAdd += nucleonsNumber;
+            }
+            else if (nucleationType == 2)    //all at the begining
+            {
+                if (iterator == 0)
+                {
+                    nucleonsToAdd = nucleonsNumber;
+                }
+                else
+                {
+                    nucleonsToAdd = 0;
+                }
+            }
+
+            pointsAvailable = new List<Point>();
+            if (nucleonsLocation == 0) // Grain boundaries
+            {
+                for (int i = 0; i < spaceDim; i++)
+                {
+                    for (int j = 0; j < spaceDim; j++)
+                    {
+                        var tmpNeighbors = getVonNeumannNeighbors(i, j).Where(c => c.grainID != -1 && c.grainID != -2).GroupBy(c => c.grainID).OrderByDescending(g => g.Count()).ToList();
+                        if (tmpNeighbors.Count() > 1)
+                        {
+                            pointsAvailable.Add(new Point(i, j));
+                        }
+                    }
+                }
+            }
+            else    //Anywhere
+            {
+                for (int i = 0; i < spaceDim; i++)
+                {
+                    for (int j = 0; j < spaceDim; j++)
+                    {
+                        pointsAvailable.Add(new Point(i, j));
+                    }
+                }
+            }
+
+
+            //loop
+
+            //      nucleation:
+            if (nucleonsToAdd > pointsAvailable.Count)
+            {
+                nucleonsToAdd = pointsAvailable.Count;
+            }
+            pointsAvailable = ShuffleList<Point>(pointsAvailable);
+            int x, y;
+            Color color;
+            for (int i = 0; i < nucleonsToAdd; i++)
+            {
+                x = pointsAvailable[i].X;
+                y = pointsAvailable[i].Y;
+                color = Color.FromArgb(rnd.Next(100, 255), 0, 0);
+                grains.Add(new Grain(grains.Count, color, true));
+                previousStep[x][y].grainID = grains.Count - 1;
+                previousStep[x][y].recristalized = true;
+                previousStep[x][y].energy = 0;
+                bitmapEnergy.SetPixel(x, y, Color.FromArgb(0, 255, 0));
+                bitmap.SetPixel(x, y, color);
+            }
+            //      growth:
+
+            List<Point> points = new List<Point>();
+            for (int i = 0; i < spaceDim; i++)
+            {
+                for (int j = 0; j < spaceDim; j++)
+                {
+                    points.Add(new Point(i, j));
+                }
+            }
+            points = ShuffleList<Point>(points);
+            List<Cell> neighbors;
+            double oldCellEnergy, newCellEnergy;
+            int newCellID;
+            Color energyColor;
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                x = points[i].X;
+                y = points[i].Y;
+                //neighbors = RemoveInactiveCells(getMooreNeighbors(x, y));
+                neighbors = getMooreNeighbors(x, y);
+                oldCellEnergy = GetCellEnergy(neighbors, previousStep[x][y].grainID) + previousStep[x][y].energy;
+
+                newCellID = getNewRecrystalizedNeighbor(neighbors);
+                if (newCellID == -1)
+                    continue;
+                newCellEnergy = GetCellEnergy(neighbors, newCellID);
+                if (newCellEnergy < oldCellEnergy)
+                {
+                    previousStep[x][y].grainID = newCellID;
+                    previousStep[x][y].recristalized = true;
+                    previousStep[x][y].energy = 0;
+                    energyColor = Color.FromArgb(0, 255, 0);
+                    bitmapEnergy.SetPixel(x, y, energyColor);
+                    bitmap.SetPixel(x, y, grains[newCellID].color);
+                }
+            }
+            Console.WriteLine("Iteration done");
+
+        }
+
+        private int getNewRecrystalizedNeighbor(List<Cell> list)
+        {
+            int index;
+            Random rnd = new Random();
+            do
+            {
+                index = rnd.Next(0, list.Count);
+                if (list[index].recristalized)
+                {
+                    return list[index].grainID;
+                }
+                list.RemoveAt(index);
+            } while (list.Count() > 0);
+            return -1;
+        }
+
+        internal void DistributeEnergy(int distributionType, int minEnergy, int maxEnergy, int deviation)
+        {
+            this.maxEnergy = maxEnergy + maxEnergy * (Double)((double)deviation / 100.0);
+            Random rnd = new Random();
+            double energyDeviation;
+            if (distributionType == 0)
+            {
+                for (int i = 0; i < spaceDim; i++)
+                {
+                    for (int j = 0; j < spaceDim; j++)
+                    {
+                        energyDeviation = ((double)rnd.Next(-deviation, deviation) / 100) * minEnergy;
+                        nextStep[i][j].energy = minEnergy + (double)energyDeviation;
+                    }
+                }
+            }
+            else if (distributionType == 1)
+            {
+                for (int i = 0; i < spaceDim; i++)
+                {
+                    for (int j = 0; j < spaceDim; j++)
+                    {
+                        var neighbors = getVonNeumannNeighbors(i, j).Where(c => c.grainID != -1 && c.grainID != -2).GroupBy(c => c.grainID).OrderByDescending(g => g.Count()).ToList();
+
+                        if (neighbors.Count() > 1)
+                        {
+                            energyDeviation = ((double)rnd.Next(-deviation, deviation) / 100) * maxEnergy;
+                            nextStep[i][j].energy = maxEnergy + (double)energyDeviation;
+                        }
+                        else
+                        {
+                            energyDeviation = ((double)rnd.Next(-deviation, deviation) / 100) * minEnergy;
+                            nextStep[i][j].energy = minEnergy + (double)energyDeviation;
+                        }
+                    }
+                }
+            }
+
+            copyList();
+            DrawBitmap();
+        }
+
+        internal void MCGrow(System.Windows.Forms.PictureBox pictureBox1)
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            List<Point> points = new List<Point>();
+            for (int i = 0; i < spaceDim; i++)
+            {
+                for (int j = 0; j < spaceDim; j++)
+                {
+                    points.Add(new Point(i, j));
+                }
+            }
+            Random rnd = new Random();
+            int pointID;
+            int newCellID;
+            List<Cell> neighbors;
+            int x, y;
+            int oldCellEnergy, newCellEnergy;
+            do
+            {
+                pointID = rnd.Next(0, points.Count);
+                x = points[pointID].X;
+                y = points[pointID].Y;
+                if (previousStep[x][y].grainID < -1)
+                {
+                    points.Remove(points[pointID]);
+                    continue;
+                }
+                //do operations on nextStep[points[pointID.x][points[pointID.y]]
+                neighbors = RemoveInactiveCells(getMooreNeighbors(x, y));
+                if (neighbors.Count == 0)
+                {
+                    points.Remove(points[pointID]);
+                    continue;
+                }
+                oldCellEnergy = GetCellEnergy(neighbors, previousStep[x][y].grainID);
+                if (oldCellEnergy <= 4)
+                {
+                    points.Remove(points[pointID]);
+                    continue;
+                }
+                newCellID = neighbors[rnd.Next(0, neighbors.Count)].grainID;
+                newCellEnergy = GetCellEnergy(neighbors, newCellID);
+
+                if (newCellID < oldCellEnergy)
+                {
+                    nextStep[x][y].grainID = newCellID;
+                    bitmap.SetPixel(x, y, grains[newCellID].color);
+                }
+
+                points.Remove(points[pointID]);
+            } while (points.Count > 0);
+
+            Console.WriteLine("Iteration done!");
+
+            watch.Stop();
+            Console.WriteLine("Iteartion time: " + watch.ElapsedMilliseconds / 1000);
+            copyList();
+        }
+
+        private List<Cell> RemoveInactiveCells(List<Cell> list)
+        {
+            List<Cell> modifiedList = new List<Cell>();
+            foreach (Cell cell in list)
+            {
+                if (cell.grainID >= 0)
+                {
+                    modifiedList.Add(new Cell(cell.grainID));
+                }
+            }
+            return modifiedList;
+        }
+
+        private int GetCellEnergy(List<Cell> neighbors, int cellID)
+        {
+            int energy = 0;
+            for (int i = 0; i < neighbors.Count - 1; i++)
+            {
+                if (neighbors[i].grainID != cellID && neighbors[i].grainID >= 0)
+                {
+                    energy++;
+                }
+            }
+            return energy;
+        }
+
+        internal void setMCGrains(int grainsNumber)
+        {
+            Random rnd = new Random();
+            grains = new List<Grain>();
+
+            for (int i = 0; i < grainsNumber; i++)
+            {
+                System.Drawing.Color randomColor = System.Drawing.Color.FromArgb(rnd.Next(0, 256), rnd.Next(0, 256), rnd.Next(0, 256));
+                grains.Add(new Grain(i, randomColor));
+            }
+
+            for (int i = 0; i < spaceDim; i++)
+            {
+                for (int j = 0; j < spaceDim; j++)
+                {
+                    if (previousStep[i][j].grainID < -1)
+                    {
+                        nextStep[i][j].grainID = previousStep[i][j].grainID;
+
+                        continue;
+                    }
+                    nextStep[i][j].grainID = rnd.Next(0, grainsNumber);
+                }
+            }
+            copyList();
         }
 
         internal void SetDualStructure()
@@ -791,6 +1100,22 @@ namespace CA
             result.Add(previousStep[xl][yb]);
             result.Add(previousStep[xr][yb]);
             return result;
+        }
+
+        private List<E> ShuffleList<E>(List<E> inputList)
+        {
+            List<E> randomList = new List<E>();
+
+            Random r = new Random();
+            int randomIndex = 0;
+            while (inputList.Count > 0)
+            {
+                randomIndex = r.Next(0, inputList.Count); //Choose a random object in the list
+                randomList.Add(inputList[randomIndex]); //add it to the new, random list
+                inputList.RemoveAt(randomIndex); //remove to avoid duplicates
+            }
+
+            return randomList; //return the new random list
         }
     }
 }

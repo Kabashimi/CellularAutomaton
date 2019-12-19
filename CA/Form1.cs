@@ -27,7 +27,7 @@ namespace CA
         private void pictureBox1_Click(object sender, EventArgs e)
         {
             var args = (MouseEventArgs)e;
-            if(engine.AddSelectedGrain(args.Location.X, args.Location.Y))
+            if (engine.AddSelectedGrain(args.Location.X, args.Location.Y))
             {
                 //add grain to list
                 String grainLabel = "Id: " + engine.selectedGrains[engine.selectedGrains.Count - 1] + " - ";
@@ -221,6 +221,110 @@ namespace CA
         {
             engine.SetDualStructure();
             this.pictureBox1.Image = engine.bitmap;
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            String grainsNumberString = textBox5.Text;
+            int grainsNumber;
+            if (!Int32.TryParse(grainsNumberString, out grainsNumber))
+            {
+                Console.WriteLine("Grains number is not a valid number.");
+            }
+            else
+            {
+                engine.setMCGrains(grainsNumber);
+                engine.DrawBitmap();
+                pictureBox1.Image = engine.bitmap;
+            }
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            String iterationsNumberString = textBox6.Text;
+            int iterationsNumber;
+            if (!Int32.TryParse(iterationsNumberString, out iterationsNumber))
+            {
+                Console.WriteLine("Iterations number is not a valid number.");
+            }
+            else
+            {
+                for (int i = 0; i < iterationsNumber; i++)
+                {
+                    engine.MCGrow(pictureBox1);
+                    engine.DrawBitmap();
+                    pictureBox1.Image = engine.bitmap;
+                    pictureBox1.Refresh();
+                }
+
+            }
+        }
+
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void radioButton1_Click(object sender, EventArgs e)
+        {
+            engine.showEnergy = false;
+            pictureBox1.Image = engine.bitmap;
+        }
+
+        private void radioButton2_Click(object sender, EventArgs e)
+        {
+            engine.showEnergy = true;
+            pictureBox1.Image = engine.bitmapEnergy;
+
+        }
+
+        private void button10_Click(object sender, EventArgs e)
+        {
+            int energyDistributionType = comboBox3.SelectedIndex;
+            int minEnergy = System.Convert.ToInt32(textBox7.Text);
+            int maxEnergy = System.Convert.ToInt32(textBox8.Text);
+            int deviation = System.Convert.ToInt32(textBox9.Text);
+            engine.DistributeEnergy(energyDistributionType, minEnergy, maxEnergy, deviation);
+            Console.WriteLine("Distribution energy done");
+        }
+
+        private void label16_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label15_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            int nucleonsLocation = comboBox4.SelectedIndex;
+            int nucleationType = comboBox5.SelectedIndex;
+            int nucleonsNumber = System.Convert.ToInt32(textBox11.Text);
+            int iterationsNumber = System.Convert.ToInt32(textBox10.Text);
+            for (int i = 0; i < iterationsNumber; i++)
+            {
+                engine.Recrystallize(nucleonsLocation, nucleationType, nucleonsNumber);
+                if (engine.showEnergy)
+                {
+                    pictureBox1.Image = engine.bitmapEnergy;
+                    pictureBox1.Refresh();
+                }
+                else
+                {
+                    pictureBox1.Image = engine.bitmap;
+                    pictureBox1.Refresh();
+                }
+            }
+
+
+        }
+
+        private void textBox8_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

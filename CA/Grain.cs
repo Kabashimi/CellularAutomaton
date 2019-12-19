@@ -11,11 +11,13 @@ namespace CA
     {
         public int ID;
         public System.Drawing.Color color;
+        public bool recristalized;
 
-        public Grain(int id, Color color)
+        public Grain(int id, Color color, bool rec = false)
         {
             this.color = color;
             ID = id;
+            recristalized = rec;
         }
     }
 }
